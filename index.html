@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>data.gouv.fr Explorer — Données ouvertes françaises</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #000091;
+    --accent-light: #e3e3fd;
+    --accent-hover: #00006d;
+    --surface: #f6f6f6;
+    --surface-elevated: #ffffff;
+    --border: #e0e0e0;
+    --text-primary: #1e1e1e;
+    --text-secondary: #555;
+    --text-muted: #999;
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-body: 'DM Sans', 'Helvetica Neue', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --radius: 14px;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-7px); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c8c8c8; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; transition: color 0.2s; }
+  a:hover { color: var(--accent-hover); }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  header {
+    padding: 12px 24px;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(0,0,100,0.15);
+    position: relative;
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(255,255,255,0.13);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; backdrop-filter: blur(10px);
+  }
+  .header-title {
+    font-size: 19px; font-weight: 600;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  .header-title span { opacity: 0.55; font-weight: 400; font-size: 14px; }
+  .header-sub {
+    font-size: 10.5px; opacity: 0.6;
+    font-family: var(--font-mono);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .header-status {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 14px; border-radius: 20px;
+    background: rgba(255,255,255,0.11);
+    font-size: 11px; font-family: var(--font-mono);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #34d399; box-shadow: 0 0 8px #34d399;
+  }
+
+  /* ─── Messages area ─── */
+  #messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── Welcome ─── */
+  #welcome {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    animation: fadeIn 0.6s ease-out;
+    max-width: 660px; margin: 0 auto; width: 100%;
+    padding: 20px;
+  }
+  #welcome.hidden { display: none; }
+
+  .welcome-icon {
+    font-size: 52px; margin-bottom: 18px;
+    animation: float 4s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(0,0,145,0.15));
+  }
+  .welcome-title {
+    font-family: var(--font-display);
+    font-size: 34px; font-weight: 400; font-style: italic;
+    color: var(--accent); text-align: center;
+    line-height: 1.15; margin-bottom: 10px;
+  }
+  .welcome-desc {
+    color: var(--text-secondary); font-size: 14.5px;
+    text-align: center; max-width: 480px;
+    line-height: 1.65; margin-bottom: 36px;
+  }
+  .welcome-desc strong { color: var(--accent); }
+
+  .suggestions {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; width: 100%;
+  }
+  @media (max-width: 560px) { .suggestions { grid-template-columns: 1fr; } }
+
+  .suggestion-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px; border-radius: 12px;
+    background: var(--surface-elevated);
+    border: 1.5px solid var(--border);
+    cursor: pointer; text-align: left;
+    font-size: 13px; color: var(--text-primary);
+    font-family: var(--font-body);
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    line-height: 1.35;
+  }
+  .suggestion-btn:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(0,0,145,0.1);
+  }
+  .suggestion-btn .icon { font-size: 22px; flex-shrink: 0; }
+
+  .powered-by {
+    margin-top: 36px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    justify-content: center;
+    font-size: 11px; color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+  .powered-by .badge {
+    padding: 2px 9px; border-radius: 4px;
+    font-weight: 500; font-size: 10.5px;
+  }
+  .badge-mcp { background: var(--accent-light); color: var(--accent); }
+  .badge-dg { background: #f0fdf4; color: #166534; }
+  .badge-claude { background: #fef3c7; color: #92400e; }
+
+  /* ─── Message bubbles ─── */
+  .message {
+    display: flex; flex-direction: column;
+    margin-bottom: 18px;
+    animation: slideUp 0.35s ease-out;
+  }
+  .message.user { align-items: flex-end; }
+  .message.assistant { align-items: flex-start; }
+
+  .message-label {
+    font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted);
+    font-family: var(--font-mono); font-weight: 600;
+    margin-bottom: 6px; padding: 0 4px;
+  }
+
+  .tool-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .tool-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 11.5px; font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+  .tool-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+  .tool-dot.pending { background: #f59e0b; animation: pulse 1.4s infinite; }
+  .tool-dot.done { background: #10b981; }
+  .tool-dot.error { background: #ef4444; }
+
+  .bubble {
+    max-width: 92%; padding: 18px 22px;
+    font-size: 14px; line-height: 1.7;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  .message.user .bubble {
+    max-width: 72%;
+    padding: 12px 20px;
+    border-radius: 20px 20px 4px 20px;
+    background: var(--accent);
+    color: #fff;
+  }
+  .message.assistant .bubble {
+    border-radius: 20px 20px 20px 4px;
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+
+  .bubble .table-wrap {
+    overflow-x: auto; margin: 14px 0;
+    border-radius: 8px; border: 1px solid var(--border);
+  }
+  .bubble table {
+    border-collapse: collapse; width: 100%; font-size: 12.5px;
+  }
+  .bubble th {
+    background: var(--accent-light); color: var(--accent);
+    font-weight: 600; text-align: left;
+    padding: 9px 13px; font-family: var(--font-mono);
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.04em; white-space: nowrap;
+  }
+  .bubble td {
+    padding: 8px 13px; border-top: 1px solid var(--border);
+  }
+  .bubble tr:hover td { background: #f8f8ff; }
+  .bubble h2, .bubble h3, .bubble h4 {
+    margin: 16px 0 8px; color: var(--accent);
+    font-family: var(--font-display);
+  }
+  .bubble h2 { font-size: 20px; }
+  .bubble h3 { font-size: 17px; }
+  .bubble h4 { font-size: 15px; }
+  .bubble ul { padding-left: 20px; margin: 8px 0; }
+  .bubble li { margin: 4px 0; }
+  .bubble code.inline-code {
+    background: var(--accent-light); color: var(--accent);
+    padding: 1px 6px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 12px;
+  }
+  .bubble strong { color: inherit; font-weight: 600; }
+
+  .error-box {
+    margin-top: 8px; padding: 9px 14px; border-radius: 8px;
+    background: #fef2f2; border: 1px solid #fecaca;
+    color: #991b1b; font-size: 12px;
+  }
+
+  /* ─── Loading dots ─── */
+  .loading-dots {
+    display: flex; align-items: flex-start;
+    margin-bottom: 18px; animation: slideUp 0.3s ease-out;
+  }
+  .loading-dots-inner {
+    display: flex; align-items: center; gap: 7px;
+    padding: 16px 22px;
+    border-radius: 20px 20px 20px 4px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+  }
+  .loading-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); opacity: 0.6;
+  }
+  .loading-dot:nth-child(1) { animation: bounce 1.4s infinite 0s; }
+  .loading-dot:nth-child(2) { animation: bounce 1.4s infinite 0.16s; }
+  .loading-dot:nth-child(3) { animation: bounce 1.4s infinite 0.32s; }
+
+  /* ─── Input bar ─── */
+  #input-bar {
+    padding: 16px 24px 20px;
+    background: var(--surface-elevated);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .input-row {
+    display: flex; gap: 10px;
+    max-width: 800px; margin: 0 auto;
+  }
+  #user-input {
+    flex: 1; padding: 14px 20px;
+    border-radius: var(--radius);
+    border: 2px solid var(--border);
+    font-size: 14px; font-family: var(--font-body);
+    outline: none; background: var(--surface);
+    color: var(--text-primary);
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  #user-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,0,145,0.08);
+  }
+  #user-input::placeholder { color: #aaa; }
+  #user-input:disabled { opacity: 0.6; }
+
+  #send-btn {
+    padding: 0 24px; border-radius: var(--radius);
+    background: var(--accent); color: #fff;
+    border: none; font-size: 15px;
+    cursor: pointer; font-family: var(--font-body);
+    font-weight: 600; transition: all 0.25s;
+    display: flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  #send-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+  #send-btn:disabled { background: #bbb; cursor: not-allowed; }
+  #send-btn .arrow { font-size: 18px; transition: transform 0.2s; }
+  #send-btn:hover:not(:disabled) .arrow { transform: translateX(3px); }
+
+  .input-footer {
+    text-align: center; margin-top: 10px;
+    font-size: 10.5px; color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    header { padding: 10px 16px; }
+    #messages-area { padding: 16px; }
+    .welcome-title { font-size: 26px; }
+    .bubble { padding: 14px 16px; }
+    #input-bar { padding: 12px 16px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <div class="header-icon">🇫🇷</div>
+      <div>
+        <div class="header-title">data.gouv.fr <span>explorer</span></div>
+        <div class="header-sub">Données ouvertes françaises · MCP</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="status-dot"></span>
+      Connecté
+    </div>
+  </header>
+
+  <!-- Messages area -->
+  <div id="messages-area">
+    <!-- Welcome screen -->
+    <div id="welcome">
+      <div class="welcome-icon">📊</div>
+      <h1 class="welcome-title">Explorez les données publiques françaises</h1>
+      <p class="welcome-desc">
+        Posez une question en langage naturel pour rechercher, analyser et visualiser
+        les jeux de données de <strong>data.gouv.fr</strong> via le connecteur MCP officiel.
+      </p>
+      <div class="suggestions" id="suggestions"></div>
+      <div class="powered-by">
+        <span style="opacity:0.5">Propulsé par</span>
+        <span class="badge badge-mcp">MCP</span>
+        <span style="opacity:0.4">×</span>
+        <span class="badge badge-dg">data.gouv.fr</span>
+        <span style="opacity:0.4">×</span>
+        <span class="badge badge-claude">Claude API</span>
+      </div>
+    </div>
+
+    <!-- Messages will be inserted here -->
+    <div id="messages-container"></div>
+    <div id="scroll-anchor"></div>
+  </div>
+
+  <!-- Input bar -->
+  <div id="input-bar">
+    <div class="input-row">
+      <input type="text" id="user-input" placeholder="Rechercher des données publiques françaises..." autocomplete="off" />
+      <button id="send-btn" onclick="handleSend()">
+        Envoyer <span class="arrow">→</span>
+      </button>
+    </div>
+    <div class="input-footer">
+      Les réponses sont générées par IA · Vérifiez toujours les données sur data.gouv.fr
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ───
+const MCP_SERVER_URL = "https://mcp.data.gouv.fr/mcp";
+let conversationHistory = [];
+let isLoading = false;
+
+const SYSTEM_PROMPT = `Tu es un assistant expert en données ouvertes françaises. Tu utilises les outils MCP de data.gouv.fr pour aider les utilisateurs à trouver, explorer et analyser des jeux de données publics.
+
+Règles importantes :
+- Réponds toujours en français
+- Utilise les outils MCP disponibles pour chercher et analyser les données
+- Présente les résultats de manière structurée et claire
+- Quand tu trouves des données tabulaires, formate-les en tableaux markdown
+- Fournis toujours les liens vers les jeux de données sur data.gouv.fr
+- Si tu utilises query_resource_data, essaie de donner des statistiques intéressantes
+- Formate les nombres avec des espaces pour les milliers (format français)
+- Utilise des emojis pour rendre les réponses plus lisibles
+
+Quand on te demande d'analyser des données, utilise les outils dans cet ordre :
+1. search_datasets pour trouver les jeux de données pertinents
+2. list_dataset_resources pour voir les ressources disponibles
+3. query_resource_data ou download_and_parse_resource pour accéder aux données
+4. get_metrics pour les statistiques d'usage si pertinent`;
+
+const SUGGESTED_QUERIES = [
+  { icon: "🏢", text: "Quelles sont les entreprises les plus créées en France ?" },
+  { icon: "🗳️", text: "Trouve les données sur les résultats des élections" },
+  { icon: "🏠", text: "Quels sont les prix immobiliers par département ?" },
+  { icon: "📊", text: "Montre-moi les jeux de données les plus populaires" },
+  { icon: "🌡️", text: "Données sur la qualité de l'air en France" },
+  { icon: "🚆", text: "Statistiques de ponctualité des trains SNCF" },
+];
+
+const TOOL_ICONS = {
+  search_datasets: "🔍",
+  get_dataset_info: "📋",
+  list_dataset_resources: "📂",
+  get_resource_info: "ℹ️",
+  query_resource_data: "📊",
+  download_and_parse_resource: "⬇️",
+  get_metrics: "📈",
+};
+
+// ─── DOM refs ───
+const welcomeEl = document.getElementById("welcome");
+const containerEl = document.getElementById("messages-container");
+const inputEl = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
+const scrollAnchor = document.getElementById("scroll-anchor");
+const suggestionsEl = document.getElementById("suggestions");
+
+// ─── Init suggestions ───
+SUGGESTED_QUERIES.forEach((q, i) => {
+  const btn = document.createElement("button");
+  btn.className = "suggestion-btn";
+  btn.style.animationDelay = `${i * 0.08}s`;
+  btn.style.animation = `slideUp 0.4s ease-out ${i * 0.08}s both`;
+  btn.innerHTML = `<span class="icon">${q.icon}</span><span>${q.text}</span>`;
+  btn.onclick = () => sendMessage(q.text);
+  suggestionsEl.appendChild(btn);
+});
+
+// ─── Markdown formatter ───
+function formatMarkdown(text) {
+  if (!text) return "";
+  let r = text;
+
+  // Escape HTML
+  r = r.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Tables
+  r = r.replace(
+    /(\|.+\|[\r\n]+\|[-| :]+\|[\r\n]+((\|.+\|[\r\n]*)+))/g,
+    (match) => {
+      const rows = match.trim().split("\n").filter(r => r.trim());
+      if (rows.length < 2) return match;
+      const headers = rows[0].split("|").filter(c => c.trim()).map(c => c.trim());
+      const dataRows = rows.slice(2).map(r =>
+        r.split("|").filter(c => c.trim()).map(c => c.trim())
+      );
+      return `<div class="table-wrap"><table><thead><tr>${
+        headers.map(h => `<th>${h}</th>`).join("")
+      }</tr></thead><tbody>${
+        dataRows.map(row => `<tr>${row.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")
+      }</tbody></table></div>`;
+    }
+  );
+
+  // Code blocks
+  r = r.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre style="background:var(--surface);padding:12px;border-radius:8px;overflow-x:auto;font-family:var(--font-mono);font-size:12px;border:1px solid var(--border);margin:10px 0"><code>$2</code></pre>');
+
+  // Bold
+  r = r.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // Italic
+  r = r.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, "<em>$1</em>");
+  // Inline code
+  r = r.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+  // Links
+  r = r.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Headers
+  r = r.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  r = r.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  r = r.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  r = r.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  // Numbered lists
+  r = r.replace(/^\d+\.\s+(.+)$/gm, '<li style="list-style:decimal">$1</li>');
+  // Bullet lists
+  r = r.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive li in ul
+  r = r.replace(/((?:<li[^>]*>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
+  // Paragraphs
+  r = r.replace(/\n\n/g, "</p><p>");
+  r = r.replace(/\n/g, "<br>");
+
+  return `<p>${r}</p>`;
+}
+
+// ─── Scroll ───
+function scrollToBottom() {
+  scrollAnchor.scrollIntoView({ behavior: "smooth" });
+}
+
+// ─── Add message to DOM ───
+function addMessage(role, content, tools, error) {
+  const div = document.createElement("div");
+  div.className = `message ${role}`;
+
+  let html = "";
+  // Label
+  html += `<div class="message-label">${role === "user" ? "Vous" : "🇫🇷 data.gouv assistant"}</div>`;
+
+  // Tool badges
+  if (tools && tools.length) {
+    html += `<div class="tool-badges">`;
+    tools.forEach(t => {
+      html += `<div class="tool-badge">
+        <span>${TOOL_ICONS[t.name] || "⚙️"}</span>
+        <span>${t.name}</span>
+        <span class="tool-dot ${t.status}"></span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Bubble
+  html += `<div class="bubble">${role === "user" ? escapeHtml(content) : formatMarkdown(content)}</div>`;
+
+  // Error
+  if (error) {
+    html += `<div class="error-box">⚠️ ${escapeHtml(error)}</div>`;
+  }
+
+  div.innerHTML = html;
+  containerEl.appendChild(div);
+  scrollToBottom();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function showLoading() {
+  const div = document.createElement("div");
+  div.className = "loading-dots";
+  div.id = "loading-indicator";
+  div.innerHTML = `<div class="loading-dots-inner">
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+  </div>`;
+  containerEl.appendChild(div);
+  scrollToBottom();
+}
+
+function hideLoading() {
+  const el = document.getElementById("loading-indicator");
+  if (el) el.remove();
+}
+
+function setDisabled(disabled) {
+  isLoading = disabled;
+  inputEl.disabled = disabled;
+  sendBtn.disabled = disabled;
+  sendBtn.innerHTML = disabled
+    ? '<span style="animation:pulse 1.2s infinite">⏳</span> Analyse...'
+    : 'Envoyer <span class="arrow">→</span>';
+}
+
+// ─── Send message ───
+async function sendMessage(text) {
+  text = text.trim();
+  if (!text || isLoading) return;
+
+  // Hide welcome
+  welcomeEl.classList.add("hidden");
+
+  // Add user message
+  addMessage("user", text);
+  inputEl.value = "";
+  setDisabled(true);
+  showLoading();
+
+  conversationHistory.push({ role: "user", content: text });
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: conversationHistory,
+        mcp_servers: [
+          { type: "url", url: MCP_SERVER_URL, name: "datagouv" }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `Erreur HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    const textParts = [];
+    const toolCalls = [];
+
+    for (const block of data.content || []) {
+      if (block.type === "text" && block.text) {
+        textParts.push(block.text);
+      }
+      if (block.type === "mcp_tool_use") {
+        toolCalls.push({ name: block.name, status: "done" });
+      }
+    }
+
+    const fullText = textParts.join("\n\n") || "Je n'ai pas pu obtenir de réponse. Essayez de reformuler votre question.";
+
+    hideLoading();
+    addMessage("assistant", fullText, toolCalls);
+
+    conversationHistory.push({ role: "assistant", content: fullText });
+
+  } catch (err) {
+    hideLoading();
+    addMessage("assistant",
+      "Désolé, une erreur est survenue lors de la communication avec l'API.",
+      [], err.message
+    );
+  } finally {
+    setDisabled(false);
+    inputEl.focus();
+  }
+}
+
+function handleSend() {
+  sendMessage(inputEl.value);
+}
+
+// Enter key
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+});
+
+// Focus input on load
+inputEl.focus();
+</script>
+
+</body>
+</html>
